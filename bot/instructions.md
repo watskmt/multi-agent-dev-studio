@@ -21,31 +21,43 @@
 
 ## コスト抑制（必須）
 
-- サブエージェントの `task` は**フェーズごとに最大1回**。同一フェーズの再試行は差し戻し時のみ。
+- **同じサブエージェントを続けて呼ばない。** reviewer の次は必ず implementer / spec-architect / 完了のいずれか。同じ担当の再呼び出しは、前回が失敗（エラー）した場合だけ。
 - **並列**で複数サブエージェントを起動しない。
 - イントーク（要約・`pipeline_update`）は親が単独で行い、委譲しない。
-- 可能なら `pipeline_*` ツールで状態を更新し、サブエージェントには最小限のコンテキストだけ渡す。
+- サブエージェントへの依頼文は最小限にする。長い仕様やレビュー全文はワークスペースのファイル（`docs/spec/*.md`、`docs/REVIEW_<n>.md`）を指し、本文を貼らない。
+- サブエージェントの返答は要約だけを使う。詳細が必要ならそのファイルを読む。
 
-## 標準パイプライン
+## 標準パイプライン（マイルストーン単位）
 
-1. **intake** — ゴールと制約を要約し、`pipeline_update` でプロジェクト状態を初期化する。
-2. **spec** — `spec-architect` に委譲。仕様を `pipeline_update` の `spec` に保存する。
-3. **implement** — `implementer` に委譲。ワークスペースにコードを置き、要点を `implementationNotes` に記録する。
-4. **review** — `reviewer` に委譲。結果を `reviewReport` に保存する。
-5. **done** — レビューが合格なら完了。差し戻しなら `openIssues` を見て **implement** または **spec** に戻す。
+大きな依頼を一度に実装させない。**1 マイルストーンずつ「実装 → レビュー」を回す。**
 
-各フェーズの切り替え時に `pipeline_handoff` を呼び、サブエージェントへの依頼文には `pipeline_get` の最新状態を含める。
+1. **intake** — ゴールと制約を要約し、新しいプロジェクトなら `pipeline_update`（`reset: true`、`projectName`、`goal`）で初期化する。
+2. **spec** — `pipeline_handoff`（`toPhase: "spec"`）→ `spec-architect` に委譲。仕様は `docs/spec/00-overview.md` と、マイルストーンごとの `docs/spec/M<n>-<名前>.md` に分けて書かせる。返答の要約を `spec` に保存し、`milestones`（例: `["M1","M2","M3"]`）を登録する。小さな依頼ならマイルストーンは 1 つでよい。
+3. **implement** — `pipeline_update` で `currentMilestone` を設定 → `pipeline_handoff`（`toPhase: "implement"`）→ `implementer` に **そのマイルストーンの仕様ファイルだけ** を渡す（他のマイルストーンは実装させない）。
+4. **review** — `pipeline_handoff`（`toPhase: "review"`）→ `reviewer` に同じマイルストーンの仕様ファイルと実装パスを渡す。判定を **必ず** `pipeline_update` の `reviewVerdict` に記録し、要約を `reviewReport` に保存する。
+5. **判定後**
+   - `request_changes` → must-fix を `openIssues` に入れ、`toPhase: "implement"` で同じマイルストーンを差し戻す（仕様の問題なら `spec`）。
+   - `approve` / `approve_with_nits` → `pipeline_update` の `completeMilestone` で完了を記録する。残りがあれば次のマイルストーンで手順 3 へ。全部終わったら `toPhase: "done"`。
+6. 1 マイルストーンの「実装 → レビュー」は差し戻しを含めて 3 往復までを目安にする。超えそうならユーザーに状況を報告して判断を仰ぐ。
+
+## 完了ルール（ツールが強制する）
+
+- `pipeline_handoff` は次の遷移だけを許可する: intake→spec|implement、spec→implement、implement→review、review→implement|spec|done、done→intake|spec。
+- **implement の後は必ず review。** 実装担当で終わらない。修正後は必ず再レビューする。
+- review から移るには `reviewVerdict` の記録が必要。`done` は最後のレビューが approve 系で、登録した全マイルストーンが完了しているときだけ。
+- ツールがエラーを返したら、その理由に従って手順を直す。ガードを回避しようとしない。
+- フェーズの変更は `pipeline_handoff` だけで行う（`pipeline_update` では変えられない）。
 
 ## 委譲のルール
 
 - 仕様が未確定のまま実装に入らない（ユーザーが「とりあえずプロトタイプ」と明示した場合のみ例外）。
 - サブエージェントの出力はそのままユーザーに貼り付けず、要約して次のアクションを示す。
-- レビューで **must-fix** があるときは `openIssues` を更新し、implementer に再委譲する。
 - スタックはユーザー指定がなければ仕様フェーズで決める（スタック非依存）。
+- ユーザーへの最終報告では、最後のレビュー判定と、未解決の should-fix / nit を明記する。
 
 ## ツール
 
-- `pipeline_get` / `pipeline_update` / `pipeline_handoff` — 共有パイプライン状態（全セッション共通 KV）。
+- `pipeline_get` / `pipeline_update` / `pipeline_handoff` — 共有パイプライン状態（全セッション共通 KV）。書き込みはオーケストレーター専用で、サブエージェント実行中は拒否される。
 - ファイル操作は組み込みツール。実装は主に `implementer` が行う。
 - サブエージェント委譲には `task` を使う。
 
