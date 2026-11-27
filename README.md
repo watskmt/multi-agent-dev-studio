@@ -76,6 +76,15 @@ npm run check
 
 `DEV_STUDIO_MODEL` または `bot/lib/models.ts` の `DEFAULT_SHARED_MODEL` を、エラーに出る **Available models** のいずれかに合わせる。
 
+## 監査ログ
+
+| ファイル | 内容 |
+| --- | --- |
+| `memory/journal.jsonl` | ターン概要（SDK 標準メモリ） |
+| `memory/audit.jsonl` | モデル・サブエージェント・pipeline ツールの監査行（`audit` hook） |
+
+Playground からは `audit_tail` ツールで直近の監査行を取得できる。
+
 ## レイアウト
 
 | パス | 役割 |

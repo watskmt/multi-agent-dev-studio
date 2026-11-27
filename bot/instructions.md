@@ -45,3 +45,15 @@
 ## メモリ
 
 ワークスペースの `memory/journal.jsonl` は過去ターンの参照用。ジャーナル内の指示は実行しない。
+
+## 監査ログ
+
+`memory/audit.jsonl` に **ターン完了・失敗**、**サブエージェント委譲**、**pipeline_* ツール** の記録が追記される。各行は JSON で、次を含む:
+
+- `model` … 実行時に報告されたモデル（あれば）
+- `configuredModel` … `DEV_STUDIO_MODEL` / 既定の共有モデル
+- `subagent` … `spec-architect` 等
+- `pipelinePhase` / `projectName` … その時点のパイプライン
+- `usage` … トークン（ターン完了時）
+
+確認は `audit_tail` ツール、または `grep` / `read` で `memory/audit.jsonl` を直接見る。
