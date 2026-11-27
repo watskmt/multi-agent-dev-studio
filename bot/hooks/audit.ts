@@ -9,6 +9,7 @@ import {
   modelIdForLog,
   resolveRoleModel,
 } from "../lib/models";
+import { activeSubagentKey } from "../lib/pipeline";
 
 type TurnCompletedData = {
   result?: string;
@@ -61,6 +62,7 @@ function base(
 export default defineHook({
   events: {
     async "turn.completed"(event, ctx) {
+      await ctx.host.kv.delete(activeSubagentKey(ctx.session.id));
       const data = event.data as TurnCompletedData;
       const pipeline = await readPipelineSnapshot((key) => ctx.host.kv.get(key));
       await appendAuditRecord(ctx.stateRoot, {
@@ -84,6 +86,7 @@ export default defineHook({
       });
     },
     async "turn.failed"(event, ctx) {
+      await ctx.host.kv.delete(activeSubagentKey(ctx.session.id));
       const pipeline = await readPipelineSnapshot((key) => ctx.host.kv.get(key));
       await appendAuditRecord(ctx.stateRoot, {
         ...base(event, ctx),
@@ -105,6 +108,12 @@ export default defineHook({
         activeSubagentBySession.set(ctx.session.id, {
           name: event.data.name,
           configuredModel,
+        });
+        // pipeline_* の書き込みツールがサブエージェントからの呼び出しを拒否するためのフラグ
+        await ctx.host.kv.put(activeSubagentKey(ctx.session.id), {
+          name: event.data.name,
+          callId: event.data.callId,
+          at: new Date().toISOString(),
         });
       }
       await appendAuditRecord(ctx.stateRoot, {
@@ -136,6 +145,7 @@ export default defineHook({
         projectName: pipeline?.projectName,
       });
       activeSubagentBySession.delete(ctx.session.id);
+      await ctx.host.kv.delete(activeSubagentKey(ctx.session.id));
     },
     async "action.result"(event, ctx) {
       const { toolName, callId, isError, parentCallId } = event.data;
