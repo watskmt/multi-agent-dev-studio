@@ -3,7 +3,7 @@
 複数の AI エージェントでアプリ開発する **Agent SDK** プロジェクトです
 
 - **オーケストレーター** — フェーズ管理とハンドオフ
-- **spec-architect** / **implementer** / **reviewer** — 役割別プロンプト（**モデルは親と同一の無料の無料枠**を継承）
+- **spec-architect** / **implementer** / **reviewer** — 役割別プロンプト（**モデルは親と同一の無料枠**を継承）
 
 ### 追加課金を避ける設定
 
@@ -29,14 +29,25 @@ tar xzf ~/Downloads/multi-agent-dev-studio.tar.gz   # 例
 npm install
 ```
 
-**B. すでに `~/multi-agent-dev-studio` にソースがある場合**
+**B. GitHub リポジトリ（空）に載せる**
+
+リポジトリ: **https://github.com/watskmt/multi-agent-dev-studio**
 
 ```bash
+git clone https://github.com/watskmt/multi-agent-dev-studio.git ~/multi-agent-dev-studio
 cd ~/multi-agent-dev-studio
-git init
+# ここにプロジェクト一式をコピー（tar 展開など）してから:
+npm install
 git add -A
-git commit -m "Initial commit"
-git branch -M main
+git commit -m "Initial import"
+git push origin main
+```
+
+**C. git bundle から復元**（チャットの成果物 `multi-agent-dev-studio.bundle` を入手した場合）
+
+```bash
+git clone multi-agent-dev-studio.bundle multi-agent-dev-studio
+cd multi-agent-dev-studio
 git remote add origin https://github.com/watskmt/multi-agent-dev-studio.git
 git push -u origin main
 ```
