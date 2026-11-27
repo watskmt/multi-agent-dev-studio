@@ -4,7 +4,11 @@ import {
   readPipelineSnapshot,
   type AuditRecord,
 } from "../lib/audit-log";
-import { resolveSharedModelId } from "../lib/models";
+import {
+  configuredModelForSubagent,
+  modelIdForLog,
+  resolveRoleModel,
+} from "../lib/models";
 
 type TurnCompletedData = {
   result?: string;
@@ -23,6 +27,25 @@ const PIPELINE_TOOLS = new Set([
   "pipeline_update",
   "pipeline_handoff",
 ]);
+
+/** サブエージェント実行中のターンに、その役割の configuredModel を付ける */
+const activeSubagentBySession = new Map<
+  string,
+  { name: string; configuredModel: string }
+>();
+
+function configuredModelForTurn(
+  sessionId: string,
+  subagentName?: string,
+): string {
+  if (subagentName) {
+    const roleModel = configuredModelForSubagent(subagentName);
+    if (roleModel) return roleModel;
+  }
+  const active = activeSubagentBySession.get(sessionId);
+  if (active) return active.configuredModel;
+  return modelIdForLog(resolveRoleModel("orchestrator"));
+}
 
 function base(
   event: { sessionId: string; turnId?: string },
@@ -45,7 +68,7 @@ export default defineHook({
         kind: "turn",
         status: "completed",
         model: data.cost?.model,
-        configuredModel: resolveSharedModelId(),
+        configuredModel: configuredModelForTurn(ctx.session.id),
         pipelinePhase: pipeline?.phase,
         projectName: pipeline?.projectName,
         usage: data.usage
@@ -66,7 +89,7 @@ export default defineHook({
         ...base(event, ctx),
         kind: "turn",
         status: "failed",
-        configuredModel: resolveSharedModelId(),
+        configuredModel: configuredModelForTurn(ctx.session.id),
         pipelinePhase: pipeline?.phase,
         projectName: pipeline?.projectName,
         detail: event.data.message?.slice(0, 500),
@@ -74,13 +97,23 @@ export default defineHook({
     },
     async "subagent.called"(event, ctx) {
       const pipeline = await readPipelineSnapshot((key) => ctx.host.kv.get(key));
+      const configuredModel = configuredModelForTurn(
+        ctx.session.id,
+        event.data.name,
+      );
+      if (event.data.name) {
+        activeSubagentBySession.set(ctx.session.id, {
+          name: event.data.name,
+          configuredModel,
+        });
+      }
       await appendAuditRecord(ctx.stateRoot, {
         ...base(event, ctx),
         kind: "subagent",
         subagentEvent: "started",
         subagent: event.data.name,
         callId: event.data.callId,
-        configuredModel: resolveSharedModelId(),
+        configuredModel,
         pipelinePhase: pipeline?.phase,
         projectName: pipeline?.projectName,
         detail: event.data.description?.slice(0, 300),
@@ -95,10 +128,14 @@ export default defineHook({
         status: event.data.isError ? "failed" : "completed",
         subagent: event.data.name,
         callId: event.data.callId,
-        configuredModel: resolveSharedModelId(),
+        configuredModel: configuredModelForTurn(
+          ctx.session.id,
+          event.data.name,
+        ),
         pipelinePhase: pipeline?.phase,
         projectName: pipeline?.projectName,
       });
+      activeSubagentBySession.delete(ctx.session.id);
     },
     async "action.result"(event, ctx) {
       const { toolName, callId, isError, parentCallId } = event.data;
@@ -114,7 +151,7 @@ export default defineHook({
         status: isError ? "failed" : "completed",
         toolName,
         callId,
-        configuredModel: resolveSharedModelId(),
+        configuredModel: modelIdForLog(resolveRoleModel("orchestrator")),
         pipelinePhase: pipeline?.phase,
         projectName: pipeline?.projectName,
         detail: parentCallId

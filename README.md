@@ -3,14 +3,18 @@
 複数の AI エージェントでアプリ開発する **Agent SDK** プロジェクトです（**tobetsu-garbage-bot とは無関係の単独プロジェクト**）。
 
 - **オーケストレーター** — フェーズ管理とハンドオフ
-- **spec-architect** / **implementer** / **reviewer** — 役割別プロンプト（**モデルは親と同一の無料枠**を継承）
+- **spec-architect** / **implementer** / **reviewer** — 役割別プロンプト **＋ 役割別モデル**
 
-### 追加課金を避ける設定
+### 役割別モデル（デフォルト）
 
-- デフォルトモデル: `gemini-2.5-flash`（アカウントの利用可能一覧に含まれる軽量モデル）
-- サブエージェントは `model` 未指定で親を継承
-- `concurrency.maxRunningTurns: 1`
-- 環境変数 `DEV_STUDIO_MODEL` で変更（例: `gpt-5.4-nano`, `default`）
+| 役割 | モデル | 環境変数 |
+| --- | --- | --- |
+| オーケストレーター | `gemini-2.5-flash` | `DEV_STUDIO_MODEL_ORCHESTRATOR` |
+| 仕様 | `claude-sonnet-5-5`（high） | `DEV_STUDIO_MODEL_SPEC` |
+| 実装 | `composer-2.5` | `DEV_STUDIO_MODEL_IMPLEMENT` |
+| レビュー | `claude-haiku-5-5` | `DEV_STUDIO_MODEL_REVIEW` |
+
+起動前に `export` するか `.env` を読み込んで上書き。Playground の `models_show` ツールで反映後の一覧を確認できる。
 
 ## R7600 など自宅 PC でのセットアップ
 
@@ -74,7 +78,10 @@ npm run check
 
 ## モデルの変更
 
-`DEV_STUDIO_MODEL` または `bot/lib/models.ts` の `DEFAULT_SHARED_MODEL` を、エラーに出る **Available models** のいずれかに合わせる。
+1. 環境変数（`.env.example` 参照）
+2. または `bot/lib/models.ts` の `DEFAULT_ROLE_MODELS`
+
+いずれも **Available models** に載っているスラッグのみ有効。
 
 ## 監査ログ
 
