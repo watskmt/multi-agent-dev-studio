@@ -6,8 +6,9 @@ export default defineAgent({
   name: "multi-agent-dev-studio",
   description:
     "複数の専門エージェントで仕様・実装・レビューを回すアプリ開発オーケストレーター（無料枠モデル共有）",
+  // ローカル CLI では sandbox 非対応のため明示的にオフ
   local: {
-    sandbox: true,
+    sandbox: false,
   },
   concurrency: { maxRunningTurns: 1 },
 });
