@@ -3,9 +3,18 @@
 複数の AI エージェントでアプリ開発する **Agent SDK** プロジェクトです。
 
 - **オーケストレーター** — フェーズ管理とハンドオフ
-- **spec-architect** — 仕様（Claude Sonnet + 高推論）
-- **implementer** — 実装（Composer 2.5 Fast）
-- **reviewer** — レビュー・テスト観点（Gemini Carbon Low。Qwen 等へ差し替え可）
+- **spec-architect** / **implementer** / **reviewer** — 役割別プロンプト（**モデルは親と同一の無料枠**を継承）
+
+### 追加課金を避ける設定
+
+- デフォルトモデル: `grok-3-mini`（Cursor 無料プランの枠内想定）
+- サブエージェントは `model` 未指定で親を継承（有料モデルを混在させない）
+- `concurrency.maxRunningTurns: 1` で同時ターンを抑止
+- 環境変数 `DEV_STUDIO_MODEL` でアカウントで有効な無料モデルに変更可能（例: `gpt-4o-mini`, `gemini-2.5-flash`, `cursor-small`）
+
+```bash
+export DEV_STUDIO_MODEL=gpt-4o-mini   # お使いの無料枠に合わせて
+```
 
 ## ローカル実行
 
@@ -29,7 +38,7 @@ npx --yes "@grok/agent-sdk@0.7.3" eval --dir .
 
 ## モデルの変更
 
-`bot/lib/models.ts` と各 `bot/subagents/*/agent.ts` の `model.id` を編集します。レビュー担当を Qwen など無料寄りのモデルにする場合は `reviewer` の id をアカウントで利用可能なスラッグに変更してください。
+`DEV_STUDIO_MODEL` または `bot/lib/models.ts` の `DEFAULT_FREE_MODEL` を、Cursor の設定 → Models で有効にした**無料枠**のスラッグに合わせてください。有料モデル（Claude / Composer 等）を設定しないでください。
 
 ## レイアウト
 
