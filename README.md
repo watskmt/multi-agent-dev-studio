@@ -7,10 +7,10 @@
 
 ### 追加課金を避ける設定
 
-- デフォルトモデル: `grok-3-mini`（Cursor 無料プランの枠内想定）
+- デフォルトモデル: `gemini-2.5-flash`（アカウントの利用可能一覧に含まれる軽量モデル）
 - サブエージェントは `model` 未指定で親を継承
 - `concurrency.maxRunningTurns: 1`
-- 環境変数 `DEV_STUDIO_MODEL` で無料枠モデルを指定（例: `gpt-4o-mini`）
+- 環境変数 `DEV_STUDIO_MODEL` で変更（例: `gpt-5.4-nano`, `default`）
 
 ## ローカルでのセットアップ
 
@@ -74,7 +74,7 @@ npm run check
 
 ## モデルの変更
 
-`DEV_STUDIO_MODEL` または `bot/lib/models.ts` の `DEFAULT_FREE_MODEL` を、Cursor 設定で有効な**無料枠**スラッグに合わせる。
+`DEV_STUDIO_MODEL` または `bot/lib/models.ts` の `DEFAULT_SHARED_MODEL` を、エラーに出る **Available models** のいずれかに合わせる。
 
 ## レイアウト
 
