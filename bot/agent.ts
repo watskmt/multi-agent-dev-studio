@@ -1,12 +1,11 @@
 import { defineAgent } from "@grok/agent-sdk";
-import { resolveSharedModelId } from "./lib/models";
+import { resolveRoleModel } from "./lib/models";
 
 export default defineAgent({
-  model: resolveSharedModelId(),
+  model: resolveRoleModel("orchestrator"),
   name: "multi-agent-dev-studio",
   description:
-    "複数の専門エージェントで仕様・実装・レビューを回すアプリ開発オーケストレーター（無料枠モデル共有）",
-  // ローカル CLI では sandbox 非対応のため明示的にオフ
+    "複数の専門エージェントで仕様・実装・レビューを回すアプリ開発オーケストレーター（役割別モデル）",
   local: {
     sandbox: false,
   },
