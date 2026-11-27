@@ -7,7 +7,8 @@
     "check": "tsc --noEmit",
     "dev": "agent-sdk dev",
     "test": "tsx --test test/*.test.ts",
-    "eval:compare": "agent-sdk eval compare --dir . --state-root .agent-serve-eval"
+    "eval:compare": "agent-sdk eval compare --dir . --state-root .agent-serve-eval",
+    "eval:hard": "agent-sdk eval compare-hard --dir . --state-root .agent-serve-eval --verbose"
   },
   "dependencies": {
     "@grok/agent-sdk": "^0.7.3",
